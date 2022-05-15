@@ -1,3 +1,4 @@
+from typing import ClassVar, Dict
 from dataclasses import dataclass
 
 
@@ -9,10 +10,10 @@ class InfoMessage:
     distance: float
     speed: float
     calories: float
-# по поводу замечания на счет имени переменной duration:
-# pytest требует именно такое имя, иначе тест не проходит
+# в других классах pytest тоже не даёт поменять duration
 
     def get_message(self) -> str:
+        """получить информационное сообщение о тренировке."""
         return (
             f'Тип тренировки: {self.training_type};'
             f' Длительность: {"{:.3f}".format(self.duration)} ч.;'
@@ -22,20 +23,15 @@ class InfoMessage:
         )
 
 
+@dataclass
 class Training:
     """Базовый класс тренировки."""
-# здесь столкнулся с проблемой при использовании @dataclass:
-# при использовании неправильно расчитывалось расстояние в классе Swimming
-    M_IN_KM = 1000
-    LEN_STEP = 0.65
-
-    def __init__(self,
-                 action: int,
-                 duration: float,
-                 weight: float) -> None:
-        self.action = action
-        self.duration = duration
-        self.weight = weight
+    action: int
+    duration: float
+    weight: float
+    M_IN_KM: ClassVar = 1000
+    LEN_STEP: ClassVar = 0.65
+# с использованием ClassVar действительно производит верные расчеты :)
 
     def get_distance(self) -> float:
         """Получить дистанцию в км."""
@@ -47,8 +43,10 @@ class Training:
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
-        pass
-        raise NotImplementedError('не переопределен метод get_spent_calories')
+        raise NotImplementedError(
+            'не переопределен метод get_spent_calories в классе '
+            f'{self.__class__.__name__}'
+        )
 
     def show_training_info(self) -> InfoMessage:
         """Вернуть информационное сообщение о выполненной тренировке."""
@@ -62,71 +60,52 @@ class Training:
 
 class Running(Training):
     """Тренировка: бег."""
-    coeff_calorie_1: int = 18
-    coeff_calorie_2: int = 20
-    minutes_in_hour: int = 60
+    COEFF_CALORIE_1: int = 18
+    COEFF_CALORIE_2: int = 20
+    MINUTES_IN_HOUR: int = 60
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
         return (
-            (self.coeff_calorie_1 * self.get_mean_speed()
-             - self.coeff_calorie_2)
+            (self.COEFF_CALORIE_1 * self.get_mean_speed()
+             - self.COEFF_CALORIE_2)
             * self.weight / self.M_IN_KM
-            * self.duration * self.minutes_in_hour
+            * self.duration * self.MINUTES_IN_HOUR
         )
 
 
+@dataclass
 class SportsWalking(Training):
     """Тренировка: спортивная ходьба."""
-    coeff_calorie_1: float = 0.035
-    coeff_calorie_2: float = 0.029
-    minutes_in_hour: int = 60
-
-    def __init__(self,
-                 action: int,
-                 duration: float,
-                 weight: float,
-                 height: float):
-        super().__init__(action,
-                         duration,
-                         weight)
-        self.height = height
-# правильно ли я понял, что декоратор @dataclass не применить
-# ко всем классам? не получалось вынести константу LEN_STEP
-# в тело родительского класса,
-# т.к. впоследствии у дочерних классов возникала ошибка, что
-# аргумент не по умолчанию следует за аргументом по умолчанию
-# таким образом, я не мог задать свойство height в классе SportsWalking)
+    action: int
+    duration: float
+    weight: float
+    height: float
+    COEFF_CALORIE_1: ClassVar = 0.035
+    COEFF_CALORIE_2: ClassVar = 0.029
+    MINUTES_IN_HOUR: ClassVar = 60
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
-
         return (
-            (self.coeff_calorie_1 * self.weight
+            (self.COEFF_CALORIE_1 * self.weight
              + (self.get_mean_speed()**2 // self.height)
-             * self.coeff_calorie_2 * self.weight)
-            * self.duration * self.minutes_in_hour
+             * self.COEFF_CALORIE_2 * self.weight)
+            * self.duration * self.MINUTES_IN_HOUR
         )
 
 
+@dataclass
 class Swimming(Training):
     """Тренировка: плавание."""
-    LEN_STEP = 1.38
-    coeff_calorie_1: float = 1.1
-    coeff_calorie_2: float = 2
-
-    def __init__(self,
-                 action: int,
-                 duration: float,
-                 weight: float,
-                 length_pool: int,
-                 count_pool: int):
-        super().__init__(action,
-                         duration,
-                         weight)
-
-        self.length_pool = length_pool
-        self.count_pool = count_pool
+    action: int
+    duration: float
+    weight: float
+    length_pool: int
+    count_pool: int
+    LEN_STEP: ClassVar = 1.38
+    COEFF_CALORIE_1: ClassVar = 1.1
+    COEFF_CALORIE_2: ClassVar = 2
 
     def get_mean_speed(self) -> float:
         """Получить среднюю скорость движения."""
@@ -136,25 +115,22 @@ class Swimming(Training):
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
         return (
-            (self.get_mean_speed() + self.coeff_calorie_1)
-            * self.coeff_calorie_2 * self.weight
+            (self.get_mean_speed() + self.COEFF_CALORIE_1)
+            * self.COEFF_CALORIE_2 * self.weight
         )
 
 
 def read_package(workout_type: str, data: list) -> Training:
     """Прочитать данные полученные от датчиков."""
-    dictionary = {
-        Swimming: 'SWM',
-        Running: 'RUN',
-        SportsWalking: 'WLK'
+    train_styles: Dict[str, type[Training]] = {
+        'SWM': Swimming,
+        'RUN': Running,
+        'WLK': SportsWalking
     }
-
-    if workout_type == dictionary[Swimming]:
-        return Swimming(*data)
-    elif workout_type == dictionary[Running]:
-        return Running(*data)
-    elif workout_type == dictionary[SportsWalking]:
-        return SportsWalking(*data)
+    if workout_type in train_styles.keys():
+        return train_styles.get(workout_type)(*data)
+    else:
+        raise KeyError('нужного ключа нет в словаре train_styles')
 
 
 def main(training: Training) -> None:
