@@ -16,10 +16,10 @@ class InfoMessage:
         """получить информационное сообщение о тренировке."""
         return (
             f'Тип тренировки: {self.training_type};'
-            f' Длительность: {"{:.3f}".format(self.duration)} ч.;'
-            f' Дистанция: {"{:.3f}".format(self.distance)} км;'
-            f' Ср. скорость: {"{:.3f}".format(self.speed)} км/ч;'
-            f' Потрачено ккал: {"{:.3f}".format(self.calories)}.'
+            f' Длительность: {self.duration:.3f} ч.;'
+            f' Дистанция: {self.distance:.3f} км;'
+            f' Ср. скорость: {self.speed:.3f} км/ч;'
+            f' Потрачено ккал: {self.calories:.3f}.'
         )
 
 
@@ -29,9 +29,8 @@ class Training:
     action: int
     duration: float
     weight: float
-    M_IN_KM: ClassVar = 1000
-    LEN_STEP: ClassVar = 0.65
-# с использованием ClassVar действительно производит верные расчеты :)
+    M_IN_KM: ClassVar[int] = 1000
+    LEN_STEP: ClassVar[float] = 0.65
 
     def get_distance(self) -> float:
         """Получить дистанцию в км."""
@@ -81,9 +80,9 @@ class SportsWalking(Training):
     duration: float
     weight: float
     height: float
-    COEFF_CALORIE_1: ClassVar = 0.035
-    COEFF_CALORIE_2: ClassVar = 0.029
-    MINUTES_IN_HOUR: ClassVar = 60
+    COEFF_CALORIE_1: ClassVar[float] = 0.035
+    COEFF_CALORIE_2: ClassVar[float] = 0.029
+    MINUTES_IN_HOUR: ClassVar[int] = 60
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
@@ -103,14 +102,16 @@ class Swimming(Training):
     weight: float
     length_pool: int
     count_pool: int
-    LEN_STEP: ClassVar = 1.38
-    COEFF_CALORIE_1: ClassVar = 1.1
-    COEFF_CALORIE_2: ClassVar = 2
+    LEN_STEP: ClassVar[float] = 1.38
+    COEFF_CALORIE_1: ClassVar[float] = 1.1
+    COEFF_CALORIE_2: ClassVar[int] = 2
 
     def get_mean_speed(self) -> float:
         """Получить среднюю скорость движения."""
-        return (self.length_pool * self.count_pool
-                / self.M_IN_KM / self.duration)
+        return (
+            self.length_pool * self.count_pool
+            / self.M_IN_KM / self.duration
+        )
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
@@ -127,10 +128,9 @@ def read_package(workout_type: str, data: list) -> Training:
         'RUN': Running,
         'WLK': SportsWalking
     }
-    if workout_type in train_styles.keys():
+    if workout_type in train_styles:
         return train_styles.get(workout_type)(*data)
-    else:
-        raise KeyError('нужного ключа нет в словаре train_styles')
+    raise ValueError('нужного ключа нет в словаре train_styles')
 
 
 def main(training: Training) -> None:
